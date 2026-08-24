@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+*.tgz
+.DS_Store
+.npmrc
+.cache/
+.config/
+.local/
+.npm/
+.npm-global/
+.wget-hsts
+
+# scratch dokumen sesi — jangan di-commit
+SESSION_*.md
+PASTE_FOR_*.txt

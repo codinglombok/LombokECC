@@ -1,0 +1,48 @@
+{
+  "name": "lombokecc",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "LombokECC \u2014 Reed-Solomon error correction codes",
+  "main": "dist/reed-solomon.js",
+  "types": "dist/reed-solomon.d.ts",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codinglombok/LombokECC.git"
+  },
+  "keywords": [
+    "reed-solomon",
+    "error-correction",
+    "ecc",
+    "data-integrity",
+    "typescript",
+    "lombokecc"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/reed-solomon.d.ts",
+      "import": "./dist/reed-solomon.js"
+    },
+    "./gf256": {
+      "types": "./dist/gf256.d.ts",
+      "import": "./dist/gf256.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "gf256": [
+        "./dist/gf256.d.ts"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^5.2.0"
+  },
+  "author": "codinglombok",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/test-rs.js",
+    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js"
+  }
+}
