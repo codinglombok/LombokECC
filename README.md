@@ -46,8 +46,8 @@ npm run test:full     # encoder + GF polynomial tests (PASS)
 npm run test:decode   # decoder test (EXPECTED FAIL — decoder belum works)
 ```
 
-> **Note**: `npm run test:full` hanya menjalankan test yang PASS di versi ini.
-> `test:decode` tersedia terpisah untuk debugging — akan FAIL karena decoder belum selesai.
+> **Note**: `npm run test:full` only runs tests that PASS in this version.
+> `test:decode` is available separately for debugging — it will FAIL because the decoder is not yet working.
 
 ## Publishing
 
