@@ -118,6 +118,27 @@ console.log();
 const ITERATIONS = 200;
 const errorCounts = [9, 10, 12, 16, 20, 32, 64];
 let hardFailures = 0;
+let totalMiscorrected = 0;
+let totalTrials = 0;
+
+/**
+ * Regression threshold on the silent-miscorrection rate.
+ *
+ * Miscorrection above t errors is theoretically unavoidable, so asserting
+ * exactly 0 would be over-claiming. But the two decode() guards (the
+ * errorPositions > t check and the isValid(corrected) check) empirically drive
+ * the observed rate to 0/1400. Measured with both guards disabled: 60-71%.
+ *
+ * Without a threshold here, either guard could be deleted and this suite would
+ * still print "NO HARD FAILURES" and exit 0 — it classifies miscorrection as
+ * unavoidable and excludes it from the failure criterion. That is exactly what
+ * happened before Sesi 13: the safety mechanism the library depends on was
+ * covered by no failing test.
+ *
+ * 2% leaves room for genuine bounded-distance miscorrection without flaking,
+ * while catching any guard regression by a factor of 30.
+ */
+const MAX_MISCORRECTION_RATE = 0.02;
 
 for (const e of errorCounts) {
   const t = run(e, ITERATIONS, 0xC0FFEE + e);
@@ -127,20 +148,39 @@ for (const e of errorCounts) {
   console.log(`errors=${String(e).padStart(2)}  of ${ITERATIONS} runs:`);
   console.log(`   detected (threw) ......... ${String(t.detected).padStart(3)}  (${pctDetected}%)`);
   console.log(`   recovered correctly ...... ${String(t.recoveredCorrect).padStart(3)}`);
-  console.log(`   miscorrected (valid alt) . ${String(t.miscorrected).padStart(3)}  (${pctMis}%)  <- theoretically unavoidable`);
+  console.log(`   miscorrected (valid alt) . ${String(t.miscorrected).padStart(3)}  (${pctMis}%)  <- unavoidable in principle, but guards should keep it ~0`);
   console.log(`   INVALID OUTPUT ........... ${String(t.invalidOutput).padStart(3)}  <- must be 0`);
   console.log(`   CRASHED .................. ${String(t.crashed).padStart(3)}  <- must be 0`);
   console.log();
 
   hardFailures += t.invalidOutput + t.crashed;
+  totalMiscorrected += t.miscorrected;
+  totalTrials += ITERATIONS;
 }
 
+const misRate = totalMiscorrected / totalTrials;
+const misPct = (misRate * 100).toFixed(2);
+const thresholdPct = (MAX_MISCORRECTION_RATE * 100).toFixed(0);
+
 console.log("=".repeat(72));
-if (hardFailures === 0) {
+console.log(`Silent miscorrection: ${totalMiscorrected}/${totalTrials} (${misPct}%), threshold ${thresholdPct}%`);
+console.log();
+
+const misRegression = misRate > MAX_MISCORRECTION_RATE;
+
+if (hardFailures === 0 && !misRegression) {
   console.log("✅ NO HARD FAILURES");
   console.log("   Every non-detected case was a genuine alternate codeword.");
   console.log("   No crashes, no malformed output, no half-corrected results.");
+  console.log("   Miscorrection rate within threshold — decode() guards are intact.");
 } else {
-  console.log(`❌ ${hardFailures} HARD FAILURE(S) — decoder can emit malformed output`);
+  if (hardFailures > 0) {
+    console.log(`❌ ${hardFailures} HARD FAILURE(S) — decoder can emit malformed output`);
+  }
+  if (misRegression) {
+    console.log(`❌ MISCORRECTION REGRESSION — ${misPct}% silent miscorrection exceeds the ${thresholdPct}% threshold.`);
+    console.log("   This is the signature of a missing or weakened decode() guard.");
+    console.log("   Check: the errorPositions > t check and the isValid(corrected) check.");
+  }
   process.exit(1);
 }

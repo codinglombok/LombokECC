@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.7] — 2026-07-27
+
+### Changed
+- All test suites now use `process.exit(1)` on failure (real assertions)
+- `test-gf-poly.ts` rewritten with `check()` function and exhaustive GF(256) field property checks
+- `test-rs.ts` assertions made real (throw on mismatch instead of console.log)
+- `test-overcapacity.ts` assertion hardened
+
+### Added
+- `mutate.sh` — mutation testing harness (12 mutations, 11 killed, 1 expected-survive)
+- `prepublishOnly` npm script
+
 ## [0.0.6] — 2026-07-26
 
 ### Added

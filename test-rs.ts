@@ -27,6 +27,35 @@ class RSTestSuite {
     return arr;
   }
 
+  /**
+   * Corrupt exactly `count` DISTINCT positions with NON-ZERO deltas.
+   *
+   * Do not inline `buf[pos] ^= rng % 256` at call sites: the low bits of this
+   * LCG have a very short period, so `% 256` yields 0 often. Earlier revisions
+   * of TEST 3 and TEST 4 did exactly that and silently corrupted 0 and 3 bytes
+   * respectively while claiming 3 and 9.
+   */
+  private corrupt(buf: Uint8Array, count: number, seed: number): { positions: number[]; values: number[] } {
+    const positions: number[] = [];
+    const values: number[] = [];
+    let rng = seed;
+
+    while (positions.length < count) {
+      rng = (rng * 1103515245 + 12345) >>> 0;
+      const pos = rng % this.rs.n;
+      if (positions.includes(pos)) continue;
+
+      rng = (rng * 1103515245 + 12345) >>> 0;
+      const val = ((rng >>> 16) % 255) + 1;   // 1..255, never 0
+
+      positions.push(pos);
+      values.push(val);
+      buf[pos] ^= val;
+    }
+
+    return { positions, values };
+  }
+
   private printBytes(label: string, data: Uint8Array, maxLen: number = 32) {
     const display = data.length > maxLen
       ? Array.from(data.slice(0, maxLen)).join(" ") + ` ... (${data.length} total)`
@@ -74,27 +103,18 @@ class RSTestSuite {
     const codeword = this.rs.encode(message);
     const corrupted = new Uint8Array(codeword);
 
-    // Corrupt exactly t=8 bytes at random positions (ensure non-zero errors)
-    const errorPositions: number[] = [];
-    const errorValues: number[] = [];
-    let rng = 100;
-
-    while (errorPositions.length < this.rs.t) {
-      rng = (rng * 1103515245 + 12345) >>> 0;
-      const pos = rng % this.rs.n;
-
-      if (!errorPositions.includes(pos)) {
-        errorPositions.push(pos);
-        rng = (rng * 1103515245 + 12345) >>> 0;
-        let errorVal = (rng % 255) + 1;  // Ensure non-zero error (1..255)
-        errorValues.push(errorVal);
-        corrupted[pos] ^= errorVal;
-      }
-    }
+    // Corrupt exactly t=8 bytes (helper guarantees distinct positions, non-zero deltas)
+    const { positions: errorPositions, values: errorValues } = this.corrupt(corrupted, this.rs.t, 100);
 
     console.log(`Corrupted ${errorPositions.length} bytes at positions: ${errorPositions.join(", ")}`);
     console.log(`Error values: ${errorValues.join(", ")}`);
-    console.log(`Codeword is now valid: ${this.rs.isValid(corrupted)}`);
+
+    const nowValid = this.rs.isValid(corrupted);
+    console.log(`Codeword is now valid: ${nowValid}`);
+
+    if (nowValid) {
+      throw new Error("Corruption was a no-op: codeword still valid, test would be vacuous!");
+    }
 
     // Decode
     const decoded = this.rs.decode(corrupted);
@@ -123,21 +143,20 @@ class RSTestSuite {
     const codeword = this.rs.encode(message);
     const corrupted = new Uint8Array(codeword);
 
-    // Corrupt 3 bytes
+    // Corrupt 3 bytes (helper guarantees 3 distinct positions, non-zero deltas)
     const errorCount = 3;
-    const errorPositions: number[] = [];
-    let rng = 200;
+    const { positions: errorPositions } = this.corrupt(corrupted, errorCount, 200);
 
-    for (let i = 0; i < errorCount; i++) {
-      rng = (rng * 1103515245 + 12345) >>> 0;
-      const pos = (rng % this.rs.n);
-      errorPositions.push(pos);
-      rng = (rng * 1103515245 + 12345) >>> 0;
-      corrupted[pos] ^= (rng % 256);
+    console.log(`Corrupted ${errorPositions.length} bytes at positions: ${errorPositions.join(", ")}`);
+
+    const nowValid = this.rs.isValid(corrupted);
+    console.log(`Codeword is now valid: ${nowValid}`);
+
+    // Sanity gate: if this is still valid, no error was actually injected and
+    // the decode below would be testing a clean codeword, not a 3-error one.
+    if (nowValid) {
+      throw new Error("Corruption was a no-op: codeword still valid, test would be vacuous!");
     }
-
-    console.log(`Corrupted ${errorPositions.length} bytes`);
-    console.log(`Codeword is now valid: ${this.rs.isValid(corrupted)}`);
 
     // Decode
     const decoded = this.rs.decode(corrupted);
@@ -166,24 +185,31 @@ class RSTestSuite {
     const codeword = this.rs.encode(message);
     const corrupted = new Uint8Array(codeword);
 
-    // Corrupt t+1 = 9 bytes
-    let rng = 300;
-    for (let i = 0; i < this.rs.t + 1; i++) {
-      rng = (rng * 1103515245 + 12345) >>> 0;
-      const pos = (rng % this.rs.n);
-      rng = (rng * 1103515245 + 12345) >>> 0;
-      corrupted[pos] ^= (rng % 256);
-    }
+    // Corrupt t+1 = 9 bytes (helper guarantees 9 distinct positions, non-zero deltas)
+    const { positions } = this.corrupt(corrupted, this.rs.t + 1, 300);
 
-    console.log(`Corrupted ${this.rs.t + 1} bytes (exceeds capacity)`);
+    console.log(`Corrupted ${positions.length} bytes (exceeds capacity) at: ${positions.join(", ")}`);
+
+    let threw = false;
+    let returned: Uint8Array | null = null;
 
     try {
-      const decoded = this.rs.decode(corrupted);
-      console.log(`ERROR: Should have thrown, but decoded: ${Array.from(decoded).join(",")}`);
+      returned = this.rs.decode(corrupted);
     } catch (error: any) {
+      threw = true;
       console.log(`Correctly threw error: ${error.message}`);
     }
     console.log();
+
+    if (!threw) {
+      // Distinguish the two non-throwing outcomes — they mean different things.
+      const matched = returned!.slice(-message.length).every((v, i) => v === message[i]);
+      throw new Error(
+        matched
+          ? "decode() returned the correct message for 9 errors — corruption likely degenerate, check the seed"
+          : "SILENT MISCORRECTION: decode() returned wrong data for 9 errors without throwing"
+      );
+    }
   }
 
   // Test 5: Valid codeword verification
@@ -194,16 +220,23 @@ class RSTestSuite {
     const message = this.randomBytes(50, 5);
     const codeword = this.rs.encode(message);
 
-    console.log(`Unmodified codeword is valid: ${this.rs.isValid(codeword)}`);
+    const cleanValid = this.rs.isValid(codeword);
+    console.log(`Unmodified codeword is valid: ${cleanValid}`);
 
     // Flip one bit in the codeword
     codeword[100] ^= 0x01;
-    console.log(`After 1-bit flip, codeword is valid: ${this.rs.isValid(codeword)}`);
+    const bitFlipValid = this.rs.isValid(codeword);
+    console.log(`After 1-bit flip, codeword is valid: ${bitFlipValid}`);
 
-    // Corrupt one entire byte
+    // Corrupt one entire byte (0x01 ^ 0xff = 0xfe, so this is still a real error)
     codeword[100] ^= 0xff;
-    console.log(`After full-byte corruption, codeword is valid: ${this.rs.isValid(codeword)}`);
+    const byteCorruptValid = this.rs.isValid(codeword);
+    console.log(`After full-byte corruption, codeword is valid: ${byteCorruptValid}`);
     console.log();
+
+    if (!cleanValid) throw new Error("Unmodified codeword must be valid!");
+    if (bitFlipValid) throw new Error("isValid() failed to detect a 1-bit flip!");
+    if (byteCorruptValid) throw new Error("isValid() failed to detect byte corruption!");
   }
 
   run(): void {

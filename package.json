@@ -1,6 +1,6 @@
 {
   "name": "lombokecc",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "description": "LombokECC \u2014 Reed-Solomon error correction codes \u2014 stress tested",
   "main": "dist/reed-solomon.js",

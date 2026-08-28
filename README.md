@@ -2,7 +2,7 @@
 
 A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
-**Version**: v0.0.6 · **Status**: 3,200+ randomised trials verified. CI enabled.
+**Version**: v0.0.7 · **Status**: Mutation tested. All assertions real.
 
 ---
 
@@ -16,6 +16,7 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 [![CI](https://img.shields.io/github/actions/workflow/status/codinglombok/LombokECC/ci.yml?style=flat-square&logo=github-actions&logoColor=white&labelColor=2088FF&color=brightgreen&label=CI&branch=main)](https://github.com/codinglombok/LombokECC/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Tests-3200%2B%20trials-brightgreen?style=flat-square&logo=checkmarx&logoColor=white&labelColor=21B352)](https://github.com/codinglombok/LombokECC)
+[![Mutations](https://img.shields.io/badge/Mutations-12%2F12%20expected-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik05IDE2LjJMNC44IDEybC0xLjQgMS40TDkgMTkgMjEgN2wtMS40LTEuNHoiLz48L3N2Zz4=&labelColor=333)](#)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white&labelColor=235A97)](https://www.typescriptlang.org/)
 [![Zero deps](https://img.shields.io/badge/Dependencies-0%20runtime-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik05IDE2LjJMNC44IDEybC0xLjQgMS40TDkgMTkgMjEgN2wtMS40LTEuNHoiLz48L3N2Zz4=&labelColor=333)](#)
 
@@ -31,20 +32,17 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ---
 
-## Changes from v0.0.5
+## Changes from v0.0.6
 
-- Randomised within-capacity stress test (1,800 trials, 0–8 errors)
-- Randomised overcapacity stress test (1,400 trials, 9–64 errors)
-- Throughput benchmark (`bench.ts`)
-- GitHub Actions CI (Node 20.x + 22.x)
-- **fix(solver)**: handle rank-deficient/inconsistent systems in Gaussian elimination
-- 0% miscorrection rate across all overcapacity trials
-
+- All test suites now use `process.exit(1)` on failure (real assertions)
+- Mutation testing harness (`mutate.sh`) — 12 mutations, 11 killed, 1 expected-survive
+- `test-gf-poly.ts` rewritten with exhaustive GF(256) field property checks
+- `prepublishOnly` script added
 ## Publishing
 
 ```bash
 npm install && npm run build && npm run test:full
-git tag -a v0.0.6 -m "LombokECC 0.0.6" && git push origin main --tags
+git tag -a v0.0.7 -m "LombokECC 0.0.7" && git push origin main --tags
 npm publish --access public
 ```
 
