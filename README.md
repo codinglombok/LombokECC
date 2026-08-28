@@ -2,7 +2,7 @@
 
 A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
-**Version**: v0.0.1 · **Status**: Encoder works, decoder WIP
+**Version**: v0.0.2 · **Status**: Encoder stable, decoder under intensive debugging
 
 ---
 
@@ -29,13 +29,22 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ---
 
+## Changes from v0.0.1
+
+- Multiple Forney formula variants tested in decoder
+- BMA L-computation bug identified: computes L=8 for single-error case (should be L=1)
+- Decoder debugging via modified test vectors in test-rs.ts
+- Encoder remains stable and fully tested
+
 ## What works
+
 - GF(256) field arithmetic (exp/log tables, mul, div, inv, pow)
 - Systematic RS encoding with parity layout `[parity(16) || message(239)]`
 - Syndrome computation and `isValid()` check
 
 ## What doesn't work yet
-- Decoder (Berlekamp-Massey + Forney) — produces incorrect results for most error patterns
+
+- Decoder (BMA) — L-update condition produces wrong values; root cause identified but not yet fixed
 
 ## Build & Test
 
@@ -52,7 +61,7 @@ npm run test:decode   # decoder test (EXPECTED FAIL — decoder belum works)
 ## Publishing
 
 ```bash
-git tag -a v0.0.1 -m "LombokECC 0.0.1" && git push origin main --tags
+git tag -a v0.0.2 -m "LombokECC 0.0.2" && git push origin main --tags
 ```
 
 ## License

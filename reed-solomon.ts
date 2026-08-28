@@ -223,33 +223,43 @@ class ReedSolomon {
 
     const errorValues = new Uint8Array(errorPositions.length);
 
-    // Compute formal derivative of sigma in GF(256)
-    // In GF(2^8): σ'(x) = σ₁ + σ₃·x + σ₅·x² + ... (only odd indices remain)
+    // Compute Omega: Ω(x) = S(x) * σ(x) mod x^(2t)
+    const omega = this.computeOmega(syndromes, sigma);
+
+    // Compute formal derivative of sigma
     let sigmaDeriv = new Uint8Array(sigma.length);
     let derivIdx = 0;
     for (let i = 1; i < sigma.length; i += 2) {
       sigmaDeriv[derivIdx++] = sigma[i];
     }
 
+    // Forney formula for systematic RS: e_j = -Ω(x_j) / (x_j * σ'(x_j))
     for (let i = 0; i < errorPositions.length; i++) {
       const pos = errorPositions[i];
-      const alpha_pos = this.gf.exp[pos % 255]; // α^pos
+      const x_j = this.gf.exp[pos % 255];  // x_j = α^pos
 
-      let numerator = 0;
-      for (let j = 0; j < syndromes.length; j++) {
-        numerator = this.gf.add(
-          numerator,
-          this.gf.mul(syndromes[j], this.gf.pow(alpha_pos, j + 1))
+      // Evaluate Ω(x_j)
+      let omega_val = 0;
+      for (let j = 0; j < omega.length; j++) {
+        omega_val = this.gf.add(
+          omega_val,
+          this.gf.mul(omega[j], this.gf.pow(x_j, j))
         );
       }
 
-      let denominator = 0;
+      // Evaluate σ'(x_j)
+      let sigma_deriv_val = 0;
       for (let j = 0; j < sigmaDeriv.length; j++) {
-        denominator = this.gf.add(
-          denominator,
-          this.gf.mul(sigmaDeriv[j], this.gf.pow(alpha_pos, j))
+        sigma_deriv_val = this.gf.add(
+          sigma_deriv_val,
+          this.gf.mul(sigmaDeriv[j], this.gf.pow(x_j, j))
         );
       }
+
+      // e_j = -Ω(x_j) / (x_j * σ'(x_j))
+      // In GF(256): -x = x (since char = 2), so numerator = Ω(x_j)
+      const numerator = omega_val;
+      const denominator = this.gf.mul(x_j, sigma_deriv_val);
 
       if (denominator === 0) {
         throw new Error("Unable to compute error value: singular denominator");
@@ -259,6 +269,38 @@ class ReedSolomon {
     }
 
     return errorValues;
+  }
+
+  // Compute Omega polynomial: Ω(x) = S(x) * σ(x) mod x^(2t)
+  private computeOmega(syndromes: Uint8Array, sigma: Uint8Array): Uint8Array {
+    const modDegree = syndromes.length;
+
+    // S(x) polynomial from syndromes
+    const S = new Uint8Array(syndromes.length);
+    for (let i = 0; i < syndromes.length; i++) {
+      S[i] = syndromes[i];
+    }
+
+    // Multiply S(x) * σ(x)
+    const maxDegree = S.length + sigma.length - 2;
+    const product = new Uint8Array(maxDegree + 1);
+
+    for (let i = 0; i < S.length; i++) {
+      for (let j = 0; j < sigma.length; j++) {
+        product[i + j] = this.gf.add(
+          product[i + j],
+          this.gf.mul(S[i], sigma[j])
+        );
+      }
+    }
+
+    // Take modulo x^(2t)
+    const omega = new Uint8Array(modDegree);
+    for (let i = 0; i < modDegree && i < product.length; i++) {
+      omega[i] = product[i];
+    }
+
+    return omega;
   }
 
   decode(received: Uint8Array): Uint8Array {

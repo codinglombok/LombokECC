@@ -100,8 +100,10 @@ class RSTestSuite {
     const decoded = this.rs.decode(corrupted);
     this.printBytes("Decoded message", decoded);
 
-    // Verify
-    const match = decoded.every((v, i) => v === message[i]);
+    // Verify - extract only the actual message portion (last message.length bytes)
+    // The decoded output includes padding zeros before the actual message
+    const decodedMessage = decoded.slice(decoded.length - message.length);
+    const match = decodedMessage.every((v, i) => v === message[i]);
     console.log(`Decoded matches original: ${match}`);
     console.log();
 
@@ -141,8 +143,10 @@ class RSTestSuite {
     const decoded = this.rs.decode(corrupted);
     this.printBytes("Decoded message", decoded);
 
-    // Verify
-    const match = decoded.every((v, i) => v === message[i]);
+    // Verify - extract only the actual message portion (last message.length bytes)
+    // The decoded output includes padding zeros before the actual message
+    const decodedMessage = decoded.slice(decoded.length - message.length);
+    const match = decodedMessage.every((v, i) => v === message[i]);
     console.log(`Decoded matches original: ${match}`);
     console.log();
 

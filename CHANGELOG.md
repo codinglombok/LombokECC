@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.2] — 2026-07-25
+
+### Changed
+- Multiple Forney formula variants tested in decoder
+- Decoder debugging via modified test vectors
+
+### Fixed
+- BMA L-computation bug identified: computes L=8 for single-error case (should be L=1)
+
 ## [0.0.1] — 2026-07-25
 
 ### Added
