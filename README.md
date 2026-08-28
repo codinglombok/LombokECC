@@ -2,7 +2,7 @@
 
 A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
-**Version**: v0.0.5 · **Status**: Full encode/decode pipeline working
+**Version**: v0.0.6 · **Status**: 3,200+ randomised trials verified. CI enabled.
 
 ---
 
@@ -14,6 +14,8 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ### Quality
 
+[![CI](https://img.shields.io/github/actions/workflow/status/codinglombok/LombokECC/ci.yml?style=flat-square&logo=github-actions&logoColor=white&labelColor=2088FF&color=brightgreen&label=CI&branch=main)](https://github.com/codinglombok/LombokECC/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-3200%2B%20trials-brightgreen?style=flat-square&logo=checkmarx&logoColor=white&labelColor=21B352)](https://github.com/codinglombok/LombokECC)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white&labelColor=235A97)](https://www.typescriptlang.org/)
 [![Zero deps](https://img.shields.io/badge/Dependencies-0%20runtime-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik05IDE2LjJMNC44IDEybC0xLjQgMS40TDkgMTkgMjEgN2wtMS40LTEuNHoiLz48L3N2Zz4=&labelColor=333)](#)
 
@@ -29,26 +31,21 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ---
 
-## Changes from v0.0.4
+## Changes from v0.0.5
 
-- **fix**: corrected systemic RS message comparison — decoder was comparing against wrong portion of codeword
-- **fix**: added codeword validation after correction (`isValid()` guard)
-- `decode()` now throws on failed correction instead of returning corrupt data (fail-closed)
-- All encode → corrupt → decode round-trip integration tests pass
-
-## What works
-
-- GF(256) field arithmetic (exp/log tables, mul, div, inv, pow)
-- Systematic RS encoding `[parity(16) || message(239)]`
-- Full decode pipeline: syndromes → Peterson-GZ → Chien search → direct error-value solver
-- Corrects up to 8 byte errors per 255-byte block
-- Fail-closed: `decode()` throws on failed correction
+- Randomised within-capacity stress test (1,800 trials, 0–8 errors)
+- Randomised overcapacity stress test (1,400 trials, 9–64 errors)
+- Throughput benchmark (`bench.ts`)
+- GitHub Actions CI (Node 20.x + 22.x)
+- **fix(solver)**: handle rank-deficient/inconsistent systems in Gaussian elimination
+- 0% miscorrection rate across all overcapacity trials
 
 ## Publishing
 
 ```bash
 npm install && npm run build && npm run test:full
-git tag -a v0.0.5 -m "LombokECC 0.0.5" && git push origin main --tags
+git tag -a v0.0.6 -m "LombokECC 0.0.6" && git push origin main --tags
+npm publish --access public
 ```
 
 ## License

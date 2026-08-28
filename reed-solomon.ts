@@ -225,6 +225,9 @@ class ReedSolomon {
       aug[i] = [...A[i], b[i]];
     }
     
+    // pivotCol[r] = index of the column that row r pivots on, or -1 if unused.
+    const pivotCol: number[] = new Array(m).fill(-1);
+    
     // Forward elimination
     let row = 0;
     for (let col = 0; col < n && row < m; col++) {
@@ -238,6 +241,10 @@ class ReedSolomon {
       }
       
       if (pivot === -1) continue;
+      
+      // Remember which column this row pivots on, so the solution can be
+      // mapped back to the right variable even when columns are skipped.
+      pivotCol[row] = col;
       
       // Swap rows
       [aug[row], aug[pivot]] = [aug[pivot], aug[row]];
@@ -261,10 +268,28 @@ class ReedSolomon {
       row++;
     }
     
-    // Extract solution
+    // `row` is now the rank of A. A unique solution requires rank === n;
+    // rank < n means free variables remain and the system is underdetermined.
+    const rank = row;
+    if (rank < n) {
+      return null;
+    }
+    
+    // Rows past the rank must read 0 = 0. A nonzero RHS there means the system
+    // is inconsistent and has no solution at all.
+    for (let i = rank; i < m; i++) {
+      if (aug[i][n] !== 0) {
+        return null;
+      }
+    }
+    
+    // Map each pivot row back to the variable it actually solves for.
     const solution = new Array(n).fill(0);
-    for (let i = 0; i < Math.min(n, m); i++) {
-      solution[i] = aug[i][n];
+    for (let i = 0; i < rank; i++) {
+      const col = pivotCol[i];
+      if (col >= 0) {
+        solution[col] = aug[i][n];
+      }
     }
     
     return solution;

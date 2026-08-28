@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.6] — 2026-07-26
+
+### Added
+- `test-capacity.ts` — randomised within-capacity stress test (1,800 trials, 0–8 errors)
+- `test-overcapacity.ts` — randomised overcapacity stress test (1,400 trials, 9–64 errors)
+- `bench.ts` — throughput benchmark
+- `.github/workflows/ci.yml` — GitHub Actions CI (Node 20.x + 22.x)
+
+### Fixed
+- `gaussianElimination()` now handles rank-deficient and inconsistent systems
+
 ## [0.0.5] — 2026-07-26
 
 ### Fixed

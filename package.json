@@ -1,8 +1,8 @@
 {
   "name": "lombokecc",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
-  "description": "LombokECC \u2014 Reed-Solomon error correction codes",
+  "description": "LombokECC \u2014 Reed-Solomon error correction codes \u2014 stress tested",
   "main": "dist/reed-solomon.js",
   "types": "dist/reed-solomon.d.ts",
   "license": "Apache-2.0",
@@ -43,6 +43,8 @@
   "scripts": {
     "build": "tsc",
     "test": "node dist/test-rs.js",
-    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js"
+    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js && node dist/test-capacity.js && node dist/test-overcapacity.js",
+    "test:stress": "node dist/test-capacity.js && node dist/test-overcapacity.js",
+    "prepublishOnly": "npm run build && npm run test:full"
   }
 }

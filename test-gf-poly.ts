@@ -79,4 +79,5 @@ console.log(`Padded message length: ${paddedMsg.length}`);
 console.log(`Padded message (first 5): [${Array.from(paddedMsg.slice(0, 5)).join(", ")}]`);
 console.log(`Padded message (last 5): [${Array.from(paddedMsg.slice(-5)).join(", ")}]`);
 
+// Systemic codeword: [parity (n-k) || message (k)] — message portion starts at n-k, not 0
 console.log(`\nCodeword message part: ${codeword.slice(rs.n - rs.k).every((v, i) => v === paddedMsg[i]) ? "✅ matches" : "❌ MISMATCH"}`);
