@@ -166,19 +166,17 @@ class ReedSolomon {
         const t = new Uint8Array(sigma.length);
         t.set(sigma);
 
-        // Update sigma using the old b value (1 / last discrepancy that changed L)
-        // factor = disc / b, where b stores 1 / (previous disc)
-        const factor = this.gf.mul(disc, b);
+        const discInv = this.gf.inv(disc);
         for (let i = 0; i <= L; i++) {
           sigma[i + m] = this.gf.add(
             sigma[i + m],
-            this.gf.mul(B[i], factor)
+            this.gf.mul(this.gf.mul(disc, B[i]), discInv)
           );
         }
 
         if (2 * L <= N) {
           L = N + 1 - L;
-          b = this.gf.inv(disc); // Save 1/disc for next L update
+          b = discInv;
           B = t;
           m = 1;
         } else {
@@ -195,16 +193,15 @@ class ReedSolomon {
     const errors: number[] = [];
 
     for (let i = 1; i < this.n + 1; i++) {
-      const alpha_i = this.gf.exp[i % 255]; // α^i
+      const alpha_neg_i = this.gf.exp[(255 - i) % 255]; // α^(-i)
 
       let val = sigma[0];
       for (let j = 1; j < sigma.length; j++) {
-        val = this.gf.add(val, this.gf.mul(sigma[j], this.gf.pow(alpha_i, j)));
+        val = this.gf.add(val, this.gf.mul(sigma[j], this.gf.pow(alpha_neg_i, j)));
       }
 
       if (val === 0) {
-        const pos = (this.n - i + this.n) % this.n;
-        errors.push(pos);
+        errors.push(this.n - i);
       }
     }
 
@@ -223,43 +220,31 @@ class ReedSolomon {
 
     const errorValues = new Uint8Array(errorPositions.length);
 
-    // Compute Omega: Ω(x) = S(x) * σ(x) mod x^(2t)
-    const omega = this.computeOmega(syndromes, sigma);
-
-    // Compute formal derivative of sigma
+    // Compute derivative of sigma
     let sigmaDeriv = new Uint8Array(sigma.length);
-    let derivIdx = 0;
     for (let i = 1; i < sigma.length; i += 2) {
-      sigmaDeriv[derivIdx++] = sigma[i];
+      sigmaDeriv[i - 1] = sigma[i];
     }
 
-    // Forney formula for systematic RS: e_j = -Ω(x_j) / (x_j * σ'(x_j))
     for (let i = 0; i < errorPositions.length; i++) {
       const pos = errorPositions[i];
-      const x_j = this.gf.exp[pos % 255];  // x_j = α^pos
+      const alpha_neg_pos = this.gf.exp[(255 - pos) % 255]; // α^(-pos)
 
-      // Evaluate Ω(x_j)
-      let omega_val = 0;
-      for (let j = 0; j < omega.length; j++) {
-        omega_val = this.gf.add(
-          omega_val,
-          this.gf.mul(omega[j], this.gf.pow(x_j, j))
+      let numerator = 0;
+      for (let j = 0; j < syndromes.length; j++) {
+        numerator = this.gf.add(
+          numerator,
+          this.gf.mul(syndromes[j], this.gf.pow(alpha_neg_pos, j + 1))
         );
       }
 
-      // Evaluate σ'(x_j)
-      let sigma_deriv_val = 0;
+      let denominator = 0;
       for (let j = 0; j < sigmaDeriv.length; j++) {
-        sigma_deriv_val = this.gf.add(
-          sigma_deriv_val,
-          this.gf.mul(sigmaDeriv[j], this.gf.pow(x_j, j))
+        denominator = this.gf.add(
+          denominator,
+          this.gf.mul(sigmaDeriv[j], this.gf.pow(alpha_neg_pos, j))
         );
       }
-
-      // e_j = -Ω(x_j) / (x_j * σ'(x_j))
-      // In GF(256): -x = x (since char = 2), so numerator = Ω(x_j)
-      const numerator = omega_val;
-      const denominator = this.gf.mul(x_j, sigma_deriv_val);
 
       if (denominator === 0) {
         throw new Error("Unable to compute error value: singular denominator");
@@ -269,38 +254,6 @@ class ReedSolomon {
     }
 
     return errorValues;
-  }
-
-  // Compute Omega polynomial: Ω(x) = S(x) * σ(x) mod x^(2t)
-  private computeOmega(syndromes: Uint8Array, sigma: Uint8Array): Uint8Array {
-    const modDegree = syndromes.length;
-
-    // S(x) polynomial from syndromes
-    const S = new Uint8Array(syndromes.length);
-    for (let i = 0; i < syndromes.length; i++) {
-      S[i] = syndromes[i];
-    }
-
-    // Multiply S(x) * σ(x)
-    const maxDegree = S.length + sigma.length - 2;
-    const product = new Uint8Array(maxDegree + 1);
-
-    for (let i = 0; i < S.length; i++) {
-      for (let j = 0; j < sigma.length; j++) {
-        product[i + j] = this.gf.add(
-          product[i + j],
-          this.gf.mul(S[i], sigma[j])
-        );
-      }
-    }
-
-    // Take modulo x^(2t)
-    const omega = new Uint8Array(modDegree);
-    for (let i = 0; i < modDegree && i < product.length; i++) {
-      omega[i] = product[i];
-    }
-
-    return omega;
   }
 
   decode(received: Uint8Array): Uint8Array {

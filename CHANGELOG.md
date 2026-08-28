@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.3] — 2026-07-25
+
+### Changed
+- Decoder internals refactored (111 diff lines vs v0.0.2)
+- BMA L-update condition definitively confirmed as root cause — decision made to replace entire algorithm
+
 ## [0.0.2] — 2026-07-25
 
 ### Changed
