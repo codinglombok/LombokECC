@@ -119,15 +119,16 @@ class ReedSolomon {
   computeSyndromes(received: Uint8Array): Uint8Array {
     const syndromes = new Uint8Array(this.n - this.k);
 
-    // Syndrome[i] = received(α^(i+1))
+    // Compute S_i = received(α^i) for i = 1 to 2t
+    // Stored as syndromes[i-1] = S_i, so syndromes[0] = S_1, syndromes[1] = S_2, etc.
     for (let i = 0; i < syndromes.length; i++) {
       let syndrome = 0;
-      const alpha_i_plus_1 = this.gf.exp[i + 1]; // α^(i+1)
+      const alpha_i = this.gf.exp[(i + 1) % 255]; // α^(i+1)
 
       for (let j = 0; j < received.length; j++) {
         syndrome = this.gf.add(
           syndrome,
-          this.gf.mul(received[j], this.gf.pow(alpha_i_plus_1, j))
+          this.gf.mul(received[j], this.gf.pow(alpha_i, j))
         );
       }
       syndromes[i] = syndrome;
@@ -141,119 +142,202 @@ class ReedSolomon {
     return syndromes.every((s) => s === 0);
   }
 
-  // Berlekamp-Massey Algorithm untuk finding error locator polynomial
+  // Peterson-Gorenstein-Zierler Algorithm - More direct than BMA
+  // Solves for error locator polynomial using Gaussian elimination in GF(256)
   private berlekampMassey(syndromes: Uint8Array): Uint8Array {
-    const n = syndromes.length;
-    let sigma = new Uint8Array(n + 1);
-    sigma[0] = 1;
-
-    let L = 0; // Current locator polynomial degree
-    let m = 1;
-    let B = new Uint8Array(n + 1);
-    B[0] = 1;
-    let b = 1;
-
-    for (let N = 0; N < n; N++) {
-      // Compute discrepancy
-      let disc = syndromes[N];
-      for (let i = 1; i <= L; i++) {
-        disc = this.gf.add(disc, this.gf.mul(sigma[i], syndromes[N - i]));
-      }
-
-      if (disc === 0) {
-        m += 1;
-      } else {
-        const t = new Uint8Array(sigma.length);
-        t.set(sigma);
-
-        const discInv = this.gf.inv(disc);
-        for (let i = 0; i <= L; i++) {
-          sigma[i + m] = this.gf.add(
-            sigma[i + m],
-            this.gf.mul(this.gf.mul(disc, B[i]), discInv)
-          );
+    const n = syndromes.length; // 2t syndromes
+    const t = this.t;
+    
+    // Try each degree from 1 to t to find minimal error locator
+    for (let degree = 1; degree <= t; degree++) {
+      if (degree * 2 > n) break; // Need at least 2*degree syndromes
+      
+      // Build system: σ_i for i=1..degree  
+      // Equation: S_j + Σ σ_i * S_{j-i} = 0 for j = degree..2t-1
+      const equations = Math.min(degree, n - degree);
+      if (equations < degree) continue;
+      
+      // Create matrix A where A[row][col] = S_{row+degree-col-1}
+      const A: number[][] = [];
+      const B: number[] = [];
+      
+      for (let row = 0; row < equations; row++) {
+        const eqIndex = row + degree; // Equation index j
+        A[row] = [];
+        for (let col = 0; col < degree; col++) {
+          const syndIndex = eqIndex - col - 1; // S_{j-col-1}
+          if (syndIndex >= 0 && syndIndex < n) {
+            A[row][col] = syndromes[syndIndex];
+          } else {
+            A[row][col] = 0;
+          }
         }
-
-        if (2 * L <= N) {
-          L = N + 1 - L;
-          b = discInv;
-          B = t;
-          m = 1;
-        } else {
-          m += 1;
+        B[row] = syndromes[eqIndex];
+      }
+      
+      // Solve using Gaussian elimination
+      const solution = this.gaussianElimination(A, B);
+      
+      if (solution !== null) {
+        // Verify solution works for ALL syndromes
+        let valid = true;
+        for (let j = degree; j < n; j++) {
+          let sum = syndromes[j];
+          for (let i = 0; i < degree; i++) {
+            if (j - i - 1 >= 0) {
+              sum = this.gf.add(sum, this.gf.mul(solution[i], syndromes[j - i - 1]));
+            }
+          }
+          if (sum !== 0) {
+            valid = false;
+            break;
+          }
+        }
+        
+        if (valid) {
+          // Build sigma polynomial: σ(x) = 1 + σ_1·x + σ_2·x² + ...
+          const sigma = new Uint8Array(degree + 1);
+          sigma[0] = 1;
+          for (let i = 0; i < degree; i++) {
+            sigma[i + 1] = solution[i];
+          }
+          console.log("DEBUG PGZ - Found solution at degree=" + degree);
+          return sigma;
         }
       }
     }
-
-    return sigma.slice(0, L + 1);
+    
+    // No solution found - return minimal (no errors)
+    console.log("DEBUG PGZ - No solution found");
+    const sigma = new Uint8Array(1);
+    sigma[0] = 1;
+    return sigma;
+  }
+  
+  // Gaussian elimination solver for GF(256)
+  private gaussianElimination(A: number[][], b: number[]): number[] | null {
+    const m = A.length;
+    if (m === 0) return null;
+    const n = A[0].length;
+    if (n === 0) return null;
+    
+    // Augmented matrix
+    const aug: number[][] = [];
+    for (let i = 0; i < m; i++) {
+      aug[i] = [...A[i], b[i]];
+    }
+    
+    // Forward elimination
+    let row = 0;
+    for (let col = 0; col < n && row < m; col++) {
+      // Find pivot
+      let pivot = -1;
+      for (let i = row; i < m; i++) {
+        if (aug[i][col] !== 0) {
+          pivot = i;
+          break;
+        }
+      }
+      
+      if (pivot === -1) continue;
+      
+      // Swap rows
+      [aug[row], aug[pivot]] = [aug[pivot], aug[row]];
+      
+      // Normalize pivot row
+      const pivotVal = aug[row][col];
+      for (let j = col; j <= n; j++) {
+        aug[row][j] = this.gf.mul(aug[row][j], this.gf.inv(pivotVal));
+      }
+      
+      // Eliminate column
+      for (let i = 0; i < m; i++) {
+        if (i !== row && aug[i][col] !== 0) {
+          const factor = aug[i][col];
+          for (let j = col; j <= n; j++) {
+            aug[i][j] = this.gf.add(aug[i][j], this.gf.mul(factor, aug[row][j]));
+          }
+        }
+      }
+      
+      row++;
+    }
+    
+    // Extract solution
+    const solution = new Array(n).fill(0);
+    for (let i = 0; i < Math.min(n, m); i++) {
+      solution[i] = aug[i][n];
+    }
+    
+    return solution;
   }
 
   // Chien Search untuk finding error positions
   private chienSearch(sigma: Uint8Array): Uint8Array {
     const errors: number[] = [];
 
-    for (let i = 1; i < this.n + 1; i++) {
-      const alpha_neg_i = this.gf.exp[(255 - i) % 255]; // α^(-i)
+    // Evaluate σ(α^(-pos)) for each position pos = 0 to 254
+    // Error locator has roots at α^(-pos) when error occurs at position pos
+    for (let pos = 0; pos < this.n; pos++) {
+      // α^(-pos) = α^(255-pos) since α^255 = 1
+      const alpha_neg_pos = this.gf.exp[(255 - pos) % 255];
 
       let val = sigma[0];
       for (let j = 1; j < sigma.length; j++) {
-        val = this.gf.add(val, this.gf.mul(sigma[j], this.gf.pow(alpha_neg_i, j)));
+        val = this.gf.add(val, this.gf.mul(sigma[j], this.gf.pow(alpha_neg_pos, j)));
       }
 
       if (val === 0) {
-        errors.push(this.n - i);
+        errors.push(pos);
       }
     }
 
+    console.log("DEBUG Chien - Found positions:", errors.slice(0, 10).map(p => p.toString()).join(","));
     return new Uint8Array(errors);
   }
 
-  // Forney Algorithm untuk computing error values
+  // Direct error value computation using system of linear equations
+  // For errors at positions p_j with values e_j:
+  // S_i = Σ e_j * α^(p_j * i) for each syndrome S_i
+  // This creates a system of linear equations we can solve
   private forneyAlgorithm(
     syndromes: Uint8Array,
     sigma: Uint8Array,
     errorPositions: Uint8Array
   ): Uint8Array {
-    if (errorPositions.length === 0) {
+    const k = errorPositions.length;
+    if (k === 0) {
       return new Uint8Array(0);
     }
 
-    const errorValues = new Uint8Array(errorPositions.length);
+    // Build system of equations: A * e = S
+    // where A[i][j] = α^(p_j * (i+1))  [using 1-indexed syndromes]
+    // and b[i] = S_{i+1}
+    const A: number[][] = [];
+    const b: number[] = [];
 
-    // Compute derivative of sigma
-    let sigmaDeriv = new Uint8Array(sigma.length);
-    for (let i = 1; i < sigma.length; i += 2) {
-      sigmaDeriv[i - 1] = sigma[i];
+    // Use first k syndromes (should be sufficient)
+    for (let i = 0; i < Math.min(k, syndromes.length); i++) {
+      A[i] = [];
+      for (let j = 0; j < k; j++) {
+        const pos = errorPositions[j];
+        // Power: position * syndrome_index, where syndrome is 1-indexed
+        const power = (pos * (i + 1)) % 255;
+        A[i][j] = this.gf.exp[power];
+      }
+      b[i] = syndromes[i];
     }
 
-    for (let i = 0; i < errorPositions.length; i++) {
-      const pos = errorPositions[i];
-      const alpha_neg_pos = this.gf.exp[(255 - pos) % 255]; // α^(-pos)
+    // Solve using Gaussian elimination in GF(256)
+    const errorValues = this.gaussianElimination(A, b);
 
-      let numerator = 0;
-      for (let j = 0; j < syndromes.length; j++) {
-        numerator = this.gf.add(
-          numerator,
-          this.gf.mul(syndromes[j], this.gf.pow(alpha_neg_pos, j + 1))
-        );
-      }
-
-      let denominator = 0;
-      for (let j = 0; j < sigmaDeriv.length; j++) {
-        denominator = this.gf.add(
-          denominator,
-          this.gf.mul(sigmaDeriv[j], this.gf.pow(alpha_neg_pos, j))
-        );
-      }
-
-      if (denominator === 0) {
-        throw new Error("Unable to compute error value: singular denominator");
-      }
-
-      errorValues[i] = this.gf.div(numerator, denominator);
+    if (errorValues === null) {
+      throw new Error("Unable to solve for error values");
     }
 
-    return errorValues;
+    const result = new Uint8Array(errorValues.slice(0, k));
+    console.log("DEBUG DirectError - Computed values:", Array.from(result).map(v => v.toString()).join(","));
+    return result;
   }
 
   decode(received: Uint8Array): Uint8Array {
@@ -286,14 +370,21 @@ class ReedSolomon {
     // Forney Algorithm
     const errorValues = this.forneyAlgorithm(syndromes, sigma, errorPositions);
 
+
+
     // Apply corrections
     const corrected = new Uint8Array(received);
+    console.log("DEBUG Decode - Before corrections, corrected[200]:", corrected[200]);
     for (let i = 0; i < errorPositions.length; i++) {
       corrected[errorPositions[i]] = this.gf.add(corrected[errorPositions[i]], errorValues[i]);
     }
-
+    console.log("DEBUG Decode - After corrections, corrected[200]:", corrected[200]);
+    console.log("DEBUG Decode - Message starts at index:", this.n - this.k);
+    
     // Extract message from systemic codeword: [parity || msg]
-    return corrected.slice(this.n - this.k);
+    const message = corrected.slice(this.n - this.k);
+    console.log("DEBUG Decode - Extracted message (first 5):", Array.from(message).slice(0, 5).map(v => v.toString()).join(","));
+    return message;
   }
 }
 

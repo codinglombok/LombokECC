@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4] — 2026-07-26
+
+### Changed
+- **BREAKING**: Berlekamp-Massey replaced by Peterson-Gorenstein-Zierler (Gaussian elimination over GF(256))
+- **BREAKING**: Forney formula replaced by direct error-value solver
+- Major rewrite of `reed-solomon.ts` (296 diff lines vs v0.0.3)
+
 ## [0.0.3] — 2026-07-25
 
 ### Changed

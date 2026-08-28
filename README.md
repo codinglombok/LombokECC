@@ -2,7 +2,7 @@
 
 A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
-**Version**: v0.0.3 · **Status**: Codebase cleaned, BMA bug root cause confirmed
+**Version**: v0.0.4 · **Status**: Peterson-GZ replaces BMA, decoder nearly working
 
 ---
 
@@ -29,22 +29,25 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ---
 
-## Changes from v0.0.2
+## Changes from v0.0.3
 
-- Decoder internals refactored (reed-solomon.ts: 111 diff lines)
-- BMA L-update condition definitively confirmed as root cause
-- Test vectors updated in test-rs.ts
-- Decision made: BMA needs full replacement, not a patch
+- **BREAKING**: Berlekamp-Massey replaced by Peterson-Gorenstein-Zierler (Gaussian elimination over GF(256))
+- **BREAKING**: Forney formula replaced by direct error-value solver
+- Major rewrite of reed-solomon.ts (296 diff lines vs v0.0.3)
+- Error-value computation verified correct
+- Chien search finds correct error positions
 
 ## What works
 
-- GF(256) field arithmetic (exp/log tables, mul, div, inv, pow)
-- Systematic RS encoding with parity layout `[parity(16) || message(239)]`
-- Syndrome computation and `isValid()` check
+- GF(256) field arithmetic
+- Systematic RS encoding `[parity(16) || message(239)]`
+- Peterson-GZ error-locator polynomial computation
+- Chien search error position finding
+- Direct error-value solver
 
-## What doesn't work yet
+## Known issue
 
-- Decoder (BMA) — L-update bug confirmed unfixable in BMA framework; replacement algorithm needed
+- Message extraction after correction has offset bug — decoder computes correct error values but returns wrong portion of corrected codeword
 
 ## Build & Test
 
@@ -61,7 +64,7 @@ npm run test:decode   # decoder test (EXPECTED FAIL — decoder belum works)
 ## Publishing
 
 ```bash
-git tag -a v0.0.3 -m "LombokECC 0.0.3" && git push origin main --tags
+git tag -a v0.0.4 -m "LombokECC 0.0.4" && git push origin main --tags
 ```
 
 ## License
