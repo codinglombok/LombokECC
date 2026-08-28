@@ -37,10 +37,21 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 ## What doesn't work yet
 - Decoder (Berlekamp-Massey + Forney) — produces incorrect results for most error patterns
 
+## Build & Test
+
+```bash
+npm install
+npm run build         # tsc → dist/
+npm run test:full     # encoder + GF polynomial tests (PASS)
+npm run test:decode   # decoder test (EXPECTED FAIL — decoder belum works)
+```
+
+> **Note**: `npm run test:full` hanya menjalankan test yang PASS di versi ini.
+> `test:decode` tersedia terpisah untuk debugging — akan FAIL karena decoder belum selesai.
+
 ## Publishing
 
 ```bash
-npm install && npm run build && npm run test:full
 git tag -a v0.0.1 -m "LombokECC 0.0.1" && git push origin main --tags
 ```
 
