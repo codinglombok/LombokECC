@@ -2,7 +2,7 @@
 
 A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
-**Version**: v0.0.4 · **Status**: Peterson-GZ replaces BMA, decoder nearly working
+**Version**: v0.0.5 · **Status**: Full encode/decode pipeline working
 
 ---
 
@@ -29,42 +29,26 @@ A TypeScript implementation of Reed-Solomon error-correction codes over GF(256).
 
 ---
 
-## Changes from v0.0.3
+## Changes from v0.0.4
 
-- **BREAKING**: Berlekamp-Massey replaced by Peterson-Gorenstein-Zierler (Gaussian elimination over GF(256))
-- **BREAKING**: Forney formula replaced by direct error-value solver
-- Major rewrite of reed-solomon.ts (296 diff lines vs v0.0.3)
-- Error-value computation verified correct
-- Chien search finds correct error positions
+- **fix**: corrected systemic RS message comparison — decoder was comparing against wrong portion of codeword
+- **fix**: added codeword validation after correction (`isValid()` guard)
+- `decode()` now throws on failed correction instead of returning corrupt data (fail-closed)
+- All encode → corrupt → decode round-trip integration tests pass
 
 ## What works
 
-- GF(256) field arithmetic
+- GF(256) field arithmetic (exp/log tables, mul, div, inv, pow)
 - Systematic RS encoding `[parity(16) || message(239)]`
-- Peterson-GZ error-locator polynomial computation
-- Chien search error position finding
-- Direct error-value solver
-
-## Known issue
-
-- Message extraction after correction has offset bug — decoder computes correct error values but returns wrong portion of corrected codeword
-
-## Build & Test
-
-```bash
-npm install
-npm run build         # tsc → dist/
-npm run test:full     # encoder + GF polynomial tests (PASS)
-npm run test:decode   # decoder test (EXPECTED FAIL — decoder belum works)
-```
-
-> **Note**: `npm run test:full` only runs tests that PASS in this version.
-> `test:decode` is available separately for debugging — it will FAIL because the decoder is not yet working.
+- Full decode pipeline: syndromes → Peterson-GZ → Chien search → direct error-value solver
+- Corrects up to 8 byte errors per 255-byte block
+- Fail-closed: `decode()` throws on failed correction
 
 ## Publishing
 
 ```bash
-git tag -a v0.0.4 -m "LombokECC 0.0.4" && git push origin main --tags
+npm install && npm run build && npm run test:full
+git tag -a v0.0.5 -m "LombokECC 0.0.5" && git push origin main --tags
 ```
 
 ## License

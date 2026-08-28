@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.5] — 2026-07-26
+
+### Fixed
+- Corrected systemic RS message comparison — decoder was comparing against wrong portion of codeword
+- Added codeword validation after correction — `decode()` now throws on failed correction (fail-closed)
+
 ## [0.0.4] — 2026-07-26
 
 ### Changed

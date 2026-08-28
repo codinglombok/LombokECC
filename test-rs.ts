@@ -101,7 +101,9 @@ class RSTestSuite {
     this.printBytes("Decoded message", decoded);
 
     // Verify
-    const match = decoded.every((v, i) => v === message[i]);
+    // In systemic RS, decoder returns full k-byte message portion (239 bytes)
+    // Original message is padded to k bytes, so extract only last message.length bytes
+    const match = decoded.slice(-message.length).every((v, i) => v === message[i]);
     console.log(`Decoded matches original: ${match}`);
     console.log();
 
@@ -142,7 +144,9 @@ class RSTestSuite {
     this.printBytes("Decoded message", decoded);
 
     // Verify
-    const match = decoded.every((v, i) => v === message[i]);
+    // In systemic RS, decoder returns full k-byte message portion (239 bytes)
+    // Original message is padded to k bytes, so extract only last message.length bytes
+    const match = decoded.slice(-message.length).every((v, i) => v === message[i]);
     console.log(`Decoded matches original: ${match}`);
     console.log();
 

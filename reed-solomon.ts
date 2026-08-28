@@ -201,14 +201,12 @@ class ReedSolomon {
           for (let i = 0; i < degree; i++) {
             sigma[i + 1] = solution[i];
           }
-          console.log("DEBUG PGZ - Found solution at degree=" + degree);
           return sigma;
         }
       }
     }
     
     // No solution found - return minimal (no errors)
-    console.log("DEBUG PGZ - No solution found");
     const sigma = new Uint8Array(1);
     sigma[0] = 1;
     return sigma;
@@ -292,7 +290,6 @@ class ReedSolomon {
       }
     }
 
-    console.log("DEBUG Chien - Found positions:", errors.slice(0, 10).map(p => p.toString()).join(","));
     return new Uint8Array(errors);
   }
 
@@ -336,7 +333,6 @@ class ReedSolomon {
     }
 
     const result = new Uint8Array(errorValues.slice(0, k));
-    console.log("DEBUG DirectError - Computed values:", Array.from(result).map(v => v.toString()).join(","));
     return result;
   }
 
@@ -367,6 +363,11 @@ class ReedSolomon {
       throw new Error("Unable to locate errors");
     }
 
+    // Check if error count exceeds capacity
+    if (errorPositions.length > this.t) {
+      throw new Error(`Too many errors detected: ${errorPositions.length} > ${this.t}`);
+    }
+
     // Forney Algorithm
     const errorValues = this.forneyAlgorithm(syndromes, sigma, errorPositions);
 
@@ -374,16 +375,17 @@ class ReedSolomon {
 
     // Apply corrections
     const corrected = new Uint8Array(received);
-    console.log("DEBUG Decode - Before corrections, corrected[200]:", corrected[200]);
     for (let i = 0; i < errorPositions.length; i++) {
       corrected[errorPositions[i]] = this.gf.add(corrected[errorPositions[i]], errorValues[i]);
     }
-    console.log("DEBUG Decode - After corrections, corrected[200]:", corrected[200]);
-    console.log("DEBUG Decode - Message starts at index:", this.n - this.k);
+    
+    // Verify that corrected codeword is valid
+    if (!this.isValid(corrected)) {
+      throw new Error("Corrected codeword is not valid - too many errors or decoding failure");
+    }
     
     // Extract message from systemic codeword: [parity || msg]
     const message = corrected.slice(this.n - this.k);
-    console.log("DEBUG Decode - Extracted message (first 5):", Array.from(message).slice(0, 5).map(v => v.toString()).join(","));
     return message;
   }
 }
