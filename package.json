@@ -1,6 +1,6 @@
 {
   "name": "lombokecc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "description": "LombokECC \u2014 Reed-Solomon error correction codes",
   "main": "dist/reed-solomon.js",
@@ -46,4 +46,4 @@
     "test:full": "node dist/test-encode-only.js && node dist/test-gf-poly.js",
     "test:decode": "node dist/test-rs.js"
   }
-}
+} 
