@@ -79,4 +79,4 @@ console.log(`Padded message length: ${paddedMsg.length}`);
 console.log(`Padded message (first 5): [${Array.from(paddedMsg.slice(0, 5)).join(", ")}]`);
 console.log(`Padded message (last 5): [${Array.from(paddedMsg.slice(-5)).join(", ")}]`);
 
-console.log(`\nCodeword message part: ${codeword.slice(0, rs.k).every((v, i) => v === paddedMsg[i]) ? "✅ matches" : "❌ MISMATCH"}`);
+console.log(`\nCodeword message part: ${codeword.slice(rs.n - rs.k).every((v, i) => v === paddedMsg[i]) ? "✅ matches" : "❌ MISMATCH"}`);
