@@ -1,23 +1,10 @@
 {
   "name": "lombokecc",
-  "version": "0.0.7",
+  "version": "0.1.0",
+  "description": "LombokECC — Reed-Solomon error correction library for data integrity protection",
   "type": "module",
-  "description": "LombokECC \u2014 Reed-Solomon error correction codes \u2014 stress tested",
   "main": "dist/reed-solomon.js",
   "types": "dist/reed-solomon.d.ts",
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/codinglombok/LombokECC.git"
-  },
-  "keywords": [
-    "reed-solomon",
-    "error-correction",
-    "ecc",
-    "data-integrity",
-    "typescript",
-    "lombokecc"
-  ],
   "exports": {
     ".": {
       "types": "./dist/reed-solomon.d.ts",
@@ -35,16 +22,32 @@
       ]
     }
   },
+  "files": [
+    "dist/reed-solomon.js",
+    "dist/reed-solomon.d.ts",
+    "dist/gf256.js",
+    "dist/gf256.d.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js && node dist/test-capacity.js && node dist/test-overcapacity.js",
+    "test": "node dist/test-rs.js",
+    "prepublishOnly": "npm run build && npm run test:full",
+    "test:stress": "node dist/test-capacity.js && node dist/test-overcapacity.js"
+  },
+  "keywords": [
+    "reed-solomon", "error-correction", "ecc", "data-integrity", "typescript", "lombokecc"
+  ],
+  "author": "codinglombok",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codinglombok/LombokECC.git"
+  },
   "devDependencies": {
     "@types/node": "^26.1.1",
     "typescript": "^5.2.0"
-  },
-  "author": "codinglombok",
-  "scripts": {
-    "build": "tsc",
-    "test": "node dist/test-rs.js",
-    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js && node dist/test-capacity.js && node dist/test-overcapacity.js",
-    "test:stress": "node dist/test-capacity.js && node dist/test-overcapacity.js",
-    "prepublishOnly": "npm run build && npm run test:full"
   }
 }

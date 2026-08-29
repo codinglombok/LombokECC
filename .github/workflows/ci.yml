@@ -22,15 +22,60 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: npm
 
+      # npm ci, not npm install: package-lock.json is committed, so this is
+      # reproducible and fails loudly if the lock drifts from package.json.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build
 
       - name: Run full test suite
         run: npm run test:full
+
+  mutation:
+    # A green test suite only means "nothing threw". This job asserts the
+    # suites actually detect injected bugs. Two of the five suites were
+    # green-by-construction before Sesi 13, so this is the job that keeps
+    # that from happening again silently. ~40s.
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Mutation testing
+        run: ./mutate.sh
+
+  packaging:
+    # Catches the class of defect found in Sesi 13: the /gf256 subpath failed
+    # node10 type resolution, which no test would ever surface.
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Verify published entry points resolve
+        run: npx --yes @arethetypeswrong/cli@latest --pack --ignore-rules cjs-resolves-to-esm
 
   benchmark:
     runs-on: ubuntu-latest
@@ -42,9 +87,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+          cache: npm
 
-      - run: npm install
+      - run: npm ci
       - run: npm run build
 
-      - name: Benchmark (informational only)
+      - name: Benchmark (informational only — throughput varies ~2.5x with runner load)
         run: node dist/bench.js

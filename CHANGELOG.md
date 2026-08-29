@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0] — 2026-08-12
+
+### Changed
+- Mutation harness made portable (works from `/tmp` copy, not tied to working dir)
+- Published files narrowed to 7 files / 36.5 KB (only `dist/` + LICENSE + README)
+- CI expanded to 4 jobs: test, mutation, packaging (`@arethetypeswrong/cli`), benchmark
+- `package-lock.json` committed for reproducible `npm ci`
+
+### Added
+- `.gitignore`
+
 ## [0.0.7] — 2026-07-27
 
 ### Changed

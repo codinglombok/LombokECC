@@ -8,12 +8,17 @@
 # Usage: ./mutate.sh
 set -u
 
-SRC=/home/claude
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PASS=0
 FAIL=0
 
+# run_mutation <name> <file> <from> <to> <suite> <expect: kill|survive>
+#
+# "survive" is only for mutations proven to be genuinely redundant, and it is
+# still asserted: if such a mutation starts getting killed, that is reported as
+# a mismatch too, because it means the code changed underneath the claim.
 run_mutation() {
-  local name="$1" file="$2" from="$3" to="$4" suite="$5"
+  local name="$1" file="$2" from="$3" to="$4" suite="$5" expect="${6:-kill}"
 
   local work="/tmp/mut_$$"
   rm -rf "$work"; cp -r "$SRC" "$work"; cd "$work" || return
@@ -35,11 +40,22 @@ PY
   node "dist/${suite}.js" >/dev/null 2>&1
   local code=$?
 
-  if [ "$code" -ne 0 ]; then
-    printf '  \033[32mKILLED\033[0m  %-50s %s exits %s\n' "$name" "$suite" "$code"
+  local actual="survive"
+  [ "$code" -ne 0 ] && actual="kill"
+
+  if [ "$actual" = "$expect" ]; then
+    if [ "$actual" = "kill" ]; then
+      printf '  \033[32mKILLED\033[0m   %-50s %s exits %s\n' "$name" "$suite" "$code"
+    else
+      printf '  \033[33mSURVIVED\033[0m %-50s expected (redundant)\n' "$name"
+    fi
     PASS=$((PASS + 1))
   else
-    printf '  \033[31mSURVIVED\033[0m %-50s %s exits 0 <- GAP\n' "$name" "$suite"
+    if [ "$expect" = "kill" ]; then
+      printf '  \033[31mSURVIVED\033[0m %-50s %s exits 0 <- TEST GAP\n' "$name" "$suite"
+    else
+      printf '  \033[31mKILLED\033[0m   %-50s expected to survive <- claim stale\n' "$name"
+    fi
     FAIL=$((FAIL + 1))
   fi
 
@@ -80,8 +96,12 @@ echo
 echo "Decoder — guards (reed-solomon.ts):"
 run_mutation "disable isValid() guard on corrected word" \
   reed-solomon.ts "if (!this.isValid(corrected)) {" "if (false) {" test-overcapacity
+# Expected to survive: this guard is genuinely redundant. With it disabled and
+# isValid(corrected) left in place, miscorrection stays 0/1400, within-capacity
+# stays 1800/1800, and decode still throws via "Unable to locate errors". It is
+# defense-in-depth and a clearer error message, not the load-bearing check.
 run_mutation "disable errorPositions > t guard" \
-  reed-solomon.ts "if (errorPositions.length > this.t) {" "if (false) {" test-overcapacity
+  reed-solomon.ts "if (errorPositions.length > this.t) {" "if (false) {" test-overcapacity survive
 
 echo
 echo "Encoder (reed-solomon.ts):"
@@ -92,5 +112,11 @@ run_mutation "parity placed after message instead of before" \
 
 echo
 echo "============================================================================"
-echo "KILLED (bug terdeteksi): $PASS    SURVIVED (celah test): $FAIL"
-[ "$FAIL" -eq 0 ] && echo "Semua mutasi tertangkap." || echo "Ada mutasi yang lolos — test belum menutup path itu."
+echo "sesuai ekspektasi: $PASS    menyimpang: $FAIL"
+if [ "$FAIL" -eq 0 ]; then
+  echo "Semua mutasi berperilaku sesuai ekspektasi."
+  exit 0
+else
+  echo "Ada mutasi yang menyimpang dari ekspektasi — periksa sebelum publish."
+  exit 1
+fi
