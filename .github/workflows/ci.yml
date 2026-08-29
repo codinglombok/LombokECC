@@ -55,7 +55,7 @@ jobs:
       - run: npm run build
 
       - name: Mutation testing
-        run: ./mutate.sh
+        run: bash mutate.sh
 
   packaging:
     # Catches the class of defect found in Sesi 13: the /gf256 subpath failed
