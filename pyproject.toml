@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lombokecc"
+version = "0.2.0"
+description = "Reed-Solomon RS(255,239) error correction over GF(256) — Python port of LombokECC"
+readme = "ports/python/README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+keywords = ["reed-solomon", "error-correction", "ecc", "data-integrity", "gf256", "lombokecc"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.urls]
+Homepage = "https://github.com/codinglombok/LombokECC"
+Repository = "https://github.com/codinglombok/LombokECC"
+Issues = "https://github.com/codinglombok/LombokECC/issues"
+
+[tool.setuptools.packages.find]
+where = ["ports/python"]
+include = ["lombok_ecc*"]

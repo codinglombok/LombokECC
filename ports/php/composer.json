@@ -1,0 +1,29 @@
+{
+    "name": "codinglombok/lombokecc",
+    "description": "Reed-Solomon RS(255,239) error correction over GF(256) — PHP port of LombokECC",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": [
+        "reed-solomon",
+        "error-correction",
+        "ecc",
+        "data-integrity",
+        "gf256",
+        "lombokecc"
+    ],
+    "homepage": "https://github.com/codinglombok/LombokECC",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "CodingLombok\\LombokEcc\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "php tests/check-vectors.php ../vectors/lombok-ecc-vectors-v1.json"
+    },
+    "extra": {
+        "reference-implementation": "lombokecc@0.1.0 (TypeScript)"
+    }
+}

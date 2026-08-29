@@ -1,7 +1,7 @@
 {
   "name": "lombokecc",
-  "version": "0.1.0",
-  "description": "LombokECC — Reed-Solomon error correction library for data integrity protection",
+  "version": "0.2.0",
+  "description": "LombokECC — Reed-Solomon error correction library with multi-language ports",
   "type": "module",
   "main": "dist/reed-solomon.js",
   "types": "dist/reed-solomon.d.ts",
@@ -17,9 +17,7 @@
   },
   "typesVersions": {
     "*": {
-      "gf256": [
-        "./dist/gf256.d.ts"
-      ]
+      "gf256": ["./dist/gf256.d.ts"]
     }
   },
   "files": [
@@ -32,13 +30,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js && node dist/test-capacity.js && node dist/test-overcapacity.js",
     "test": "node dist/test-rs.js",
-    "prepublishOnly": "npm run build && npm run test:full",
-    "test:stress": "node dist/test-capacity.js && node dist/test-overcapacity.js"
+    "test:full": "node dist/test-rs.js && node dist/test-encode-only.js && node dist/test-gf-poly.js && node dist/test-capacity.js && node dist/test-overcapacity.js",
+    "test:stress": "node dist/test-capacity.js && node dist/test-overcapacity.js",
+    "prepublishOnly": "npm run build && npm run test:full"
   },
   "keywords": [
-    "reed-solomon", "error-correction", "ecc", "data-integrity", "typescript", "lombokecc"
+    "reed-solomon", "error-correction", "ecc", "data-integrity",
+    "typescript", "lombokecc", "gf256", "galois-field"
   ],
   "author": "codinglombok",
   "license": "Apache-2.0",
@@ -46,6 +45,10 @@
     "type": "git",
     "url": "https://github.com/codinglombok/LombokECC.git"
   },
+  "bugs": {
+    "url": "https://github.com/codinglombok/LombokECC/issues"
+  },
+  "homepage": "https://github.com/codinglombok/LombokECC",
   "devDependencies": {
     "@types/node": "^26.1.1",
     "typescript": "^5.2.0"

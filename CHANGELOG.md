@@ -1,5 +1,24 @@
 # Changelog
 
+All notable changes to LombokECC will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [0.2.0] — 2026-08-30
+
+### Added
+- Multi-language ports: PHP, Python, Go, Rust, C++ — all 42/42 test vectors PASS
+- Root-level `composer.json` for Packagist auto-discovery (`codinglombok/lombokecc`)
+- Root-level `pyproject.toml` for PyPI builds (`lombokecc`)
+- `ports/go/go.mod` for Go module (`github.com/codinglombok/LombokECC-go`)
+- `ports/rust/Cargo.toml` for crates.io (`lombokecc`)
+- `ports/cpp/CMakeLists.txt` for C++ header-only builds
+- Test vectors v1: 42 cases in JSON + flat text format (`ports/vectors/`)
+- Each port has its own `README.md` with install, usage, and publish instructions
+- Port test runner (`ports/run-all.sh`)
+- ArticleEccCodec prototype (`phase6-article-codec/`)
+
 ## [0.1.0] — 2026-08-12
 
 ### Changed

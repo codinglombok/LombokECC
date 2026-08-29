@@ -1,0 +1,17 @@
+[package]
+name = "lombokecc"
+version = "0.2.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Reed-Solomon RS(255,239) error correction over GF(256) — Rust port of LombokECC"
+repository = "https://github.com/codinglombok/LombokECC"
+homepage = "https://github.com/codinglombok/LombokECC"
+keywords = ["reed-solomon", "error-correction", "ecc", "gf256"]
+categories = ["encoding", "no-std"]
+readme = "README.md"
+
+[dependencies]
+
+[[bin]]
+name = "check-vectors"
+path = "src/bin/check_vectors.rs"
